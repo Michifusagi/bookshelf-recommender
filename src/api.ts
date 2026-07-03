@@ -16,6 +16,7 @@ import type {
   Message,
   ListConversationsParams,
   ListConversationsResponse,
+  RecommendationResponse,
 } from './types';
 
 export const API = {
@@ -25,7 +26,32 @@ export const API = {
   clearHistory: '/clear-history',           // Clear messages in a conversation
   conversations: '/conversations',          // List conversations for a user
   deleteConversation: '/delete-conversation', // Permanently delete a conversation
+  recommend: '/recommend',                  // Structured book recommendation agent
 } as const;
+
+export async function createRecommendation(userPrompt: string): Promise<RecommendationResponse> {
+  const res = await fetch(API.recommend, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ userPrompt }),
+  });
+
+  const data = await res.json().catch(() => null) as
+    | (RecommendationResponse & { error?: string })
+    | null;
+
+  if (!res.ok) {
+    throw new Error(data?.error || `Recommendation request failed with HTTP ${res.status}`);
+  }
+
+  if (!data) {
+    throw new Error('Recommendation service returned an empty response.');
+  }
+
+  return data;
+}
 
 export interface RawSseEvent {
   eventType: string;

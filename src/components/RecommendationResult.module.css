@@ -1,0 +1,142 @@
+.result {
+  display: grid;
+  gap: 30px;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 18px;
+}
+
+.panel,
+.ranking,
+.trace {
+  border: 1px solid rgba(72, 59, 45, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 18px 38px rgba(34, 77, 82, 0.08);
+}
+
+.panel {
+  padding: 22px;
+}
+
+.kicker {
+  display: block;
+  margin-bottom: 10px;
+  color: #2f5f64;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.interpretation {
+  color: #2b241d;
+  font-family: Georgia, serif;
+  font-size: 1.28rem;
+  line-height: 1.42;
+}
+
+.strategyList {
+  display: grid;
+  gap: 10px;
+  padding-left: 18px;
+  color: #45382c;
+  line-height: 1.48;
+}
+
+.ranking {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.32fr) minmax(0, 1fr);
+  gap: 24px;
+  padding: 22px;
+}
+
+.ranking h3 {
+  color: #241d17;
+  font-family: Georgia, serif;
+  font-size: 1.3rem;
+}
+
+.ranking ol {
+  display: grid;
+  gap: 10px;
+  counter-reset: ranking;
+  list-style: none;
+}
+
+.ranking li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(73, 56, 39, 0.14);
+  color: #251f19;
+}
+
+.ranking li::before {
+  counter-increment: ranking;
+  content: counter(ranking);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #2f5f64;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.ranking span,
+.ranking small {
+  grid-column: 2;
+}
+
+.ranking span {
+  font-weight: 800;
+}
+
+.ranking small {
+  color: #725f4c;
+}
+
+.trace {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  color: #5d4d3d;
+}
+
+.trace span {
+  font-weight: 800;
+}
+
+.trace div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trace code {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(47, 95, 100, 0.1);
+  color: #275358;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+}
+
+.trace small {
+  color: #7d6b58;
+}
+
+@media (max-width: 860px) {
+  .summaryGrid,
+  .ranking {
+    grid-template-columns: 1fr;
+  }
+}

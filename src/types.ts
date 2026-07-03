@@ -47,3 +47,50 @@ export interface ListConversationsResponse {
   nextCursor?: string;
   previousCursor?: string;
 }
+
+export type IntentType = 'learning' | 'entertainment' | 'future-self' | 'mixed';
+
+export interface BookCandidate {
+  id: string;
+  title: string;
+  authors: string[];
+  firstPublishYear?: number;
+  openLibraryKey?: string;
+  coverUrl?: string;
+  subjects?: string[];
+  source: 'open-library';
+}
+
+export interface SearchPlan {
+  goalSummary: string;
+  intentType: IntentType;
+  searchQueries: string[];
+  shelfCategories: string[];
+}
+
+export interface RecommendedBook {
+  candidateId: string;
+  title: string;
+  authors: string[];
+  firstPublishYear?: number;
+  coverUrl?: string;
+  reason: string;
+  fitScore?: number;
+}
+
+export interface Shelf {
+  name: string;
+  description: string;
+  books: RecommendedBook[];
+}
+
+export interface RecommendationResponse {
+  interpretation: string;
+  intentType: IntentType;
+  strategyTitle: string;
+  strategy: string[];
+  shelves: Shelf[];
+  ranking: RecommendedBook[];
+  searchQueries: string[];
+  candidateCount: number;
+}

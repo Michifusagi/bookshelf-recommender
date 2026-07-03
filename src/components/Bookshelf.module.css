@@ -1,0 +1,73 @@
+.stack {
+  display: grid;
+  gap: 30px;
+}
+
+.shelf {
+  position: relative;
+}
+
+.shelfHeader {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+
+.label {
+  flex-shrink: 0;
+  color: #30251b;
+  font-family: Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.shelfHeader p {
+  max-width: 620px;
+  color: #665443;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.bookRail {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 4px 2px 20px;
+  scroll-snap-type: x proximity;
+}
+
+.bookRail > * {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+
+.woodLine {
+  height: 18px;
+  border-radius: 4px;
+  background:
+    linear-gradient(90deg, rgba(47, 95, 100, 0.2), transparent 12%, rgba(255, 255, 255, 0.26) 42%, rgba(207, 107, 83, 0.18) 72%),
+    linear-gradient(180deg, #4e8b8c, #2f5f64);
+  box-shadow: 0 12px 22px rgba(34, 77, 82, 0.2);
+}
+
+.emptyShelf {
+  padding: 26px;
+  border: 1px dashed rgba(47, 95, 100, 0.34);
+  border-radius: 8px;
+  color: #6b5948;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+@media (max-width: 760px) {
+  .shelfHeader {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .shelfHeader p {
+    text-align: left;
+  }
+}
