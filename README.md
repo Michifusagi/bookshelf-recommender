@@ -6,6 +6,10 @@ A full-stack EdgeOne Makers Agent template — streaming chat backed by the Open
 
 **Live app:** [https://bookshelf-recommender-dpjdlblv9six.edgeone.dev](https://bookshelf-recommender-dpjdlblv9six.edgeone.dev)
 
+**Slides:** [Bookshelf Recommender overview deck](docs/slides/bookshelf-recommender.pdf)
+
+**Hackathon:** This repository was developed during [Agent Forge SF](https://luma.com/agentforgesf?tk=ZOkSsQ).
+
 [![Deploy to EdgeOne Makers](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/makers/new?template=openai-agents-starter-node&from=within&fromAgent=1&agentLang=typescript)
 
 <!-- ![preview](./assets/preview.png)  TODO: confirm -->
