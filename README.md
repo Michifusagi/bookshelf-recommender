@@ -4,6 +4,8 @@ A full-stack EdgeOne Makers Agent template — streaming chat backed by the Open
 
 **Framework:** OpenAI Agents SDK · **Category:** Quick Start <!-- TODO: confirm --> · **Language:** TypeScript
 
+**Live app:** [https://bookshelf-recommender-dpjdlblv9six.edgeone.dev](https://bookshelf-recommender-dpjdlblv9six.edgeone.dev)
+
 [![Deploy to EdgeOne Makers](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/makers/new?template=openai-agents-starter-node&from=within&fromAgent=1&agentLang=typescript)
 
 <!-- ![preview](./assets/preview.png)  TODO: confirm -->
