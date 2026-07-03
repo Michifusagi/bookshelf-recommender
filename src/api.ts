@@ -29,21 +29,82 @@ export const API = {
   recommend: '/recommend',                  // Structured book recommendation agent
 } as const;
 
+const MAKERS_CONVERSATION_ID_HEADER = 'Makers-Conversation-Id';
+const MAKERS_CONVERSATION_ID_STORAGE_KEY = 'makersConversationId';
+const MAKERS_CONVERSATION_ID_PATTERN = /^[0-9a-zA-Z\-_.]{6,36}$/;
+
+function isValidMakersConversationId(value: string | undefined | null): value is string {
+  return Boolean(value && MAKERS_CONVERSATION_ID_PATTERN.test(value));
+}
+
+function createMakersConversationId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  const alphabet = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_.';
+  let id = '';
+  const values = new Uint8Array(24);
+
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    crypto.getRandomValues(values);
+    for (const value of values) id += alphabet[value % alphabet.length];
+    return id;
+  }
+
+  for (let i = 0; i < 24; i += 1) {
+    id += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return id;
+}
+
+export function getMakersConversationId(preferredId?: string): string {
+  if (isValidMakersConversationId(preferredId)) {
+    return preferredId;
+  }
+
+  try {
+    const storedId = localStorage.getItem(MAKERS_CONVERSATION_ID_STORAGE_KEY);
+    if (isValidMakersConversationId(storedId)) {
+      return storedId;
+    }
+
+    const nextId = createMakersConversationId();
+    localStorage.setItem(MAKERS_CONVERSATION_ID_STORAGE_KEY, nextId);
+    return nextId;
+  } catch {
+    return createMakersConversationId();
+  }
+}
+
+function jsonHeaders(conversationId?: string): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    [MAKERS_CONVERSATION_ID_HEADER]: getMakersConversationId(conversationId),
+  };
+}
+
+function parseJsonResponse<T>(rawBody: string): T | null {
+  if (!rawBody) return null;
+  try {
+    return JSON.parse(rawBody) as T;
+  } catch {
+    return null;
+  }
+}
+
 export async function createRecommendation(userPrompt: string): Promise<RecommendationResponse> {
   const res = await fetch(API.recommend, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: jsonHeaders(),
     body: JSON.stringify({ userPrompt }),
   });
 
-  const data = await res.json().catch(() => null) as
-    | (RecommendationResponse & { error?: string })
-    | null;
+  const rawBody = await res.text().catch(() => '');
+  const data = parseJsonResponse<RecommendationResponse & { error?: string }>(rawBody);
 
   if (!res.ok) {
-    throw new Error(data?.error || `Recommendation request failed with HTTP ${res.status}`);
+    throw new Error(data?.error || rawBody || `Recommendation request failed with HTTP ${res.status}`);
   }
 
   if (!data) {
@@ -79,9 +140,7 @@ export async function fetchConversationHistory(
   try {
     const res = await fetch(API.history, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: jsonHeaders(conversationId),
       body: JSON.stringify({ conversation_id: conversationId, user_id: userId }),
     });
 
@@ -121,12 +180,7 @@ export function sendMessageStream(
 
   (async () => {
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (conversationId) {
-        headers['makers-conversation-id'] = conversationId;
-      }
+      const headers = jsonHeaders(conversationId);
 
       const res = await fetch(API.chat, {
         method: 'POST',
@@ -264,16 +318,11 @@ export async function stopAgent(conversationId?: string): Promise<boolean> {
      * but chat not actually aborting, revisit this and use a different
      * cancellation channel.
      */
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (conversationId) {
-      headers['makers-conversation-id'] = conversationId;
-    }
+    const targetConversationId = getMakersConversationId(conversationId);
     const res = await fetch(API.chatStop, {
       method: 'POST',
-      headers,
-      body: JSON.stringify({ conversation_id: conversationId }),
+      headers: jsonHeaders(targetConversationId),
+      body: JSON.stringify({ conversation_id: targetConversationId }),
     });
     return res.ok;
   } catch {
@@ -291,7 +340,7 @@ export async function clearConversationHistory(
   try {
     const res = await fetch(API.clearHistory, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: jsonHeaders(conversationId),
       body: JSON.stringify({ conversation_id: conversationId, user_id: userId }),
     });
     return res.ok;
@@ -315,7 +364,7 @@ export async function listConversations(
   try {
     const res = await fetch(API.conversations, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: jsonHeaders(),
       body: JSON.stringify({
         user_id: params.userId,
         limit: params.limit,
@@ -355,7 +404,7 @@ export async function deleteConversation(
   try {
     const res = await fetch(API.deleteConversation, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: jsonHeaders(conversationId),
       body: JSON.stringify({ conversation_id: conversationId, user_id: userId }),
     });
     return res.ok;

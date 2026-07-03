@@ -73,7 +73,7 @@ interface OpenLibraryDoc {
 
 export async function onRequest(context: any) {
   try {
-    const body = context.request.body ?? {};
+    const body = await readJsonBody(context);
     const userPrompt = typeof body.userPrompt === 'string' ? body.userPrompt.trim() : '';
 
     if (!userPrompt) {
@@ -85,17 +85,12 @@ export async function onRequest(context: any) {
     }
 
     const env = context.env as Record<string, string | undefined>;
-    if (!env.AI_GATEWAY_API_KEY || !env.AI_GATEWAY_BASE_URL) {
-      return jsonResponse(
-        { error: 'AI gateway environment variables are missing. Set AI_GATEWAY_API_KEY and AI_GATEWAY_BASE_URL.' },
-        500,
-      );
-    }
-
-    const client = new OpenAI({
-      apiKey: env.AI_GATEWAY_API_KEY,
-      baseURL: env.AI_GATEWAY_BASE_URL,
-    });
+    const client = env.AI_GATEWAY_API_KEY && env.AI_GATEWAY_BASE_URL
+      ? new OpenAI({
+        apiKey: env.AI_GATEWAY_API_KEY,
+        baseURL: env.AI_GATEWAY_BASE_URL,
+      })
+      : null;
     const model = env.AI_GATEWAY_MODEL ?? DEFAULT_MODEL;
 
     const plan = await createSearchPlan(client, model, userPrompt);
@@ -128,8 +123,25 @@ export async function onRequest(context: any) {
   }
 }
 
-async function createSearchPlan(client: OpenAI, model: string, userPrompt: string): Promise<SearchPlan> {
+async function readJsonBody(context: any): Promise<Record<string, unknown>> {
+  const body = context?.request?.body;
+  if (body && typeof body === 'object' && !Array.isArray(body)) {
+    return body as Record<string, unknown>;
+  }
+
+  try {
+    const data = await context?.request?.json?.();
+    return data && typeof data === 'object' && !Array.isArray(data)
+      ? data as Record<string, unknown>
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+async function createSearchPlan(client: OpenAI | null, model: string, userPrompt: string): Promise<SearchPlan> {
   const fallback = heuristicSearchPlan(userPrompt);
+  if (!client) return fallback;
 
   const json = await completeJson(client, model, [
     {
@@ -147,7 +159,10 @@ async function createSearchPlan(client: OpenAI, model: string, userPrompt: strin
         'searchQueries should be concise Open Library queries, 3 to 5 items, no more than 6 words each. ' +
         'shelfCategories should match the intent. Use English only.',
     },
-  ]);
+  ]).catch(error => {
+    console.error('[recommend] search-plan LLM failed, using heuristic plan:', error);
+    return {};
+  });
 
   const parsed = json as Partial<SearchPlan>;
   const intentType = normalizeIntent(parsed.intentType) ?? fallback.intentType;
@@ -165,12 +180,14 @@ async function createSearchPlan(client: OpenAI, model: string, userPrompt: strin
 }
 
 async function organizeRecommendations(
-  client: OpenAI,
+  client: OpenAI | null,
   model: string,
   userPrompt: string,
   plan: SearchPlan,
   candidates: BookCandidate[],
 ): Promise<Partial<RecommendationResponse>> {
+  if (!client) return {};
+
   const compactCandidates = candidates.map(book => ({
     id: book.id,
     title: book.title,
@@ -199,15 +216,25 @@ async function organizeRecommendations(
         'For future-self prompts, use shelves such as Foundations of the Future Self, Taste and Imagination, Professional Growth, Deep Curiosity. ' +
         'Rank the most important books in ranking. Use at most 12 total shelf books and at most 6 ranked books.',
     },
-  ]);
+  ]).catch(error => {
+    console.error('[recommend] recommendation LLM failed, using fallback shelves:', error);
+    return {};
+  });
 }
 
 async function completeJson(client: OpenAI, model: string, messages: Array<{ role: 'system' | 'user'; content: string }>) {
-  const completion = await client.chat.completions.create({
+  const request = {
     model,
     messages,
     temperature: 0.2,
+  };
+
+  const completion = await client.chat.completions.create({
+    ...request,
     response_format: { type: 'json_object' },
+  }).catch(async error => {
+    console.error('[recommend] JSON mode failed, retrying without response_format:', error);
+    return client.chat.completions.create(request);
   });
   const content = completion.choices[0]?.message?.content ?? '{}';
   return parseJsonObject(content);
@@ -218,20 +245,24 @@ async function fetchCandidates(queries: string[]): Promise<BookCandidate[]> {
 
   for (const query of queries.slice(0, MAX_QUERIES)) {
     const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=10`;
-    const response = await fetch(url, {
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': 'future-bookshelf-agent/1.0',
-      },
-    });
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'future-bookshelf-agent/1.0',
+        },
+      });
 
-    if (!response.ok) continue;
-    const data = await response.json().catch(() => null) as { docs?: OpenLibraryDoc[] } | null;
-    const docs = Array.isArray(data?.docs) ? data.docs : [];
+      if (!response.ok) continue;
+      const data = await response.json().catch(() => null) as { docs?: OpenLibraryDoc[] } | null;
+      const docs = Array.isArray(data?.docs) ? data.docs : [];
 
-    for (const doc of docs) {
-      const candidate = normalizeOpenLibraryDoc(doc);
-      if (candidate) all.push(candidate);
+      for (const doc of docs) {
+        const candidate = normalizeOpenLibraryDoc(doc);
+        if (candidate) all.push(candidate);
+      }
+    } catch (error) {
+      console.error(`[recommend] Open Library search failed for "${query}":`, error);
     }
   }
 
